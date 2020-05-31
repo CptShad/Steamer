@@ -179,17 +179,29 @@ namespace Steamer
             if (steamWeb.LoginSuccess)
                 CheckWalletCode(CodeGen.Wallet(), steamWeb.Cookies);
         }
-        public static void CheckWalletCode(string Code, CookieCollection Cookies)
+        public static bool CheckWalletCode(string Code, CookieCollection Cookies)
         {
-            string postdata = $"wallet_code={Code}&sessionid={Cookies["sessionid"].ToString()}";
+            string postdata = $"wallet_code={Code}&{Cookies["sessionid"].ToString()}";
             Leaf.xNet.HttpRequest m_HttpClient = new Leaf.xNet.HttpRequest();
             m_HttpClient.UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.61 Safari/537.36";
             m_HttpClient.AddHeader("Host", "store.steampowered.com");
             m_HttpClient.AddHeader("X-Requested-With", "XMLHttpRequest");
+            m_HttpClient.UseCookies = true;
+            m_HttpClient.AllowAutoRedirect = false;
+            m_HttpClient.Cookies = new CookieStorage();
             m_HttpClient.Cookies.Set(Cookies);
+            m_HttpClient.Cookies.Set("https://store.steampowered.com/account/validatewalletcode/", Web.steamLoginSecure);
 
             var response = m_HttpClient.Post("https://store.steampowered.com/account/validatewalletcode/", postdata, "application/x-www-form-urlencoded; charset=UTF-8");
-            Console.WriteLine(response);    
+            dynamic eval = JsonConvert.DeserializeObject(response.ToString());
+            if (eval.success == 1 && eval.detail == 0)
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
         }
     }
     class Program

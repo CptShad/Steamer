@@ -20,8 +20,9 @@ namespace SteamWeb
         public const string STEAM_COMMUNITY_LOGIN = "https://steamcommunity.com/login/dologin/";
 
         public CookieCollection Cookies;
-
+        public static string steamLoginSecure = "";
         public bool LoginSuccess = false;
+        //public static string 
        
         public async Task Login(string pUsername, string pPassword)
         {
@@ -30,6 +31,8 @@ namespace SteamWeb
             //Get RSA
             Dictionary<string, string> data = new Dictionary<string, string>();
             Leaf.xNet.HttpRequest m_HttpClient = new Leaf.xNet.HttpRequest();
+            m_HttpClient.UseCookies = true;
+            m_HttpClient.Cookies = new Leaf.xNet.CookieStorage();
             m_HttpClient.UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.61 Safari/537.36";
 
             var request = m_HttpClient.Get(STEAM_COMMUNITY_GETRSA + "?username=" + pUsername);
@@ -66,21 +69,20 @@ namespace SteamWeb
             data.Add("rsatimestamp", rsaKey.timestamp);
             data.Add("remember_login", "false");
             var response = m_HttpClient.Post(STEAM_COMMUNITY_LOGIN, new Leaf.xNet.FormUrlEncodedContent(data));
-            result = request.ToString();
-            Cookies = response.Cookies.GetCookies(STEAM_COMMUNITY);
-
             LoginResult loginResult = JsonConvert.DeserializeObject<LoginResult>(result);
 
             if (loginResult.success)
             {
-                IEnumerable<Cookie> responseCookies = response.Cookies.GetCookies(STEAM_COMMUNITY).Cast<Cookie>();
-                foreach (var cookie in responseCookies)
-                {
-                    Console.WriteLine("Name {0}, {1}", cookie.Name, cookie.Value);
-                }
+                steamLoginSecure = m_HttpClient.Cookies.GetCookies(STEAM_COMMUNITY_LOGIN)["steamLoginSecure"].ToString();
+                //foreach (var cookie in responseCookies)
+                //{
+                //    Console.WriteLine("Name {0}, {1}", cookie.Name, cookie.Value);
+                //}
                 LoginSuccess = true;
                 Console.WriteLine("Successfully logged in.");
-
+                response = m_HttpClient.Get("https://store.steampowered.com/login/?l=english");
+                Cookies = response.Cookies.GetCookies("https://store.steampowered.com/login/?l=english");
+                Console.WriteLine("Cookies Gathered");
                 //SendCookies
             }
             else
